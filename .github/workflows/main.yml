@@ -1,0 +1,71 @@
+name: SQL Autograding
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout student submission
+        uses: actions/checkout@v4
+
+      - name: Install SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3
+
+      - name: Create database
+        run: |
+          sqlite3 assignment.db < starter.sql
+
+      - name: Execute student solution
+        run: |
+          sqlite3 assignment.db < solution.sql
+
+      - name: Run test cases
+        run: |
+          sqlite3 -header -column assignment.db < test.sql
+
+      - name: Verify Karthik department
+        run: |
+          RESULT=$(sqlite3 assignment.db "SELECT DepartmentID FROM Student WHERE StudentName='Karthik';")
+
+          if [ "$RESULT" = "103" ]; then
+            echo "PASS: Karthik department is 103"
+          else
+            echo "FAIL: Karthik department is not 103"
+            exit 1
+          fi
+
+      - name: Verify StudentID 1002 deleted
+        run: |
+          RESULT=$(sqlite3 assignment.db "SELECT COUNT(*) FROM Student WHERE StudentID=1002;")
+
+          if [ "$RESULT" = "0" ]; then
+            echo "PASS: StudentID 1002 has been deleted"
+          else
+            echo "FAIL: StudentID 1002 still exists"
+            exit 1
+          fi
+
+      - name: Verify remaining records
+        run: |
+          COUNT=$(sqlite3 assignment.db "SELECT COUNT(*) FROM Student;")
+
+          if [ "$COUNT" = "4" ]; then
+            echo "PASS: Correct number of students"
+          else
+            echo "FAIL: Expected 4 students, found $COUNT"
+            exit 1
+          fi
+
+      - name: Assignment completed successfully
+        run: |
+          echo "========================================"
+          echo "ALL AUTOGRADING TESTS PASSED"
+          echo "Score: 10/10"
+          echo "========================================"
